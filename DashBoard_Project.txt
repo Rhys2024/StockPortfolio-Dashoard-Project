@@ -1,0 +1,184 @@
+import pandas as pd
+import numpy as np
+import matplotlib as mt
+import yfinance as yf
+import matplotlib.pyplot as plt
+import datetime
+from datetime import datetime
+from datetime import date
+from datetime import time
+from datetime import timedelta
+import plotly.graph_objects as go
+
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+
+class Set_Interface():
+    
+    def __init__(self, stock):
+        self.stock = stock
+        self.dataframe = []
+        global colors, now, marketOpen, delta, outlook
+        colors = {'background': '#111111','text': '#7FDBFF'}
+        now = datetime.now()
+        marketOpen = datetime(now.year, now.month,now.day, 8, 30)
+        outlook = input('How far back do you want to look?\nDay, Week, Month, Year, or 5-Year\n\n')
+        outlook
+        if outlook =='Day' or outlook =='day':
+            delta = timedelta(days=-1)
+        elif outlook =='Week' or outlook =='week':
+            delta = timedelta(weeks=-1)
+        elif outlook =='month' or outlook =='Month':
+            delta = timedelta(weeks=-4)
+        elif outlook =='year' or outlook =='Year':
+            delta = timedelta(years=-1)
+        elif outlook =='5-year' or outlook =='5-Year' or outlook =='5-Years' or outlook =='5-years':
+            delta = timedelta(years=-5)
+        
+        for i in range(len(self.stock)):
+            self.dataframe.append(self.typeStock(self.stock[i]))
+            
+    def showFig(self):
+        formatData = []
+        #global formatFig 
+        self.formatFig = []
+        self.siteFig = []
+        
+        for i in range(len(self.dataframe)):
+            formatData.append(self.dataframe[i].reset_index())
+            formatData[i].head()
+        
+        for i in range(len(self.dataframe)): 
+            for j in ['Open', 'High', 'Close', 'Low']: 
+                formatData[i][j]  =  formatData[i][j].astype('float64')
+            newfig = go.Figure(data=[go.Candlestick(x=formatData[i]['Datetime'], open=formatData[i]['Open'],high=formatData[i]['High'],low=formatData[i]['Low'], close=formatData[i]['Close'])], )
+            self.formatFig.append(newfig)
+        
+        self.formatFig = self.forSite(self.formatFig)
+
+        
+        return self.formatFig
+  
+    def typeStock(self,ele):
+        self.ele = ele
+        if self.ele.info['quoteType'] == 'CRYPTOCURRENCY':
+            return self.ele.history(period='1w', interval ='1m', start=now+delta, end=now)
+        elif self.ele.info['quoteType'] == 'EQUITY':
+            if outlook == 'Day' or outlook == 'day':
+                return self.ele.history(period='1w', interval ='1m', start=marketOpen, end=now)
+            else:
+                return self.ele.history(period='1w', interval ='1m', start=now+delta, end=now)
+        
+    def forSite(self,figure):
+        self.figure = figure
+        xAxis = []
+        for i in range(len(self.stock)):
+            xAxis.append(self.stock[i].ticker)
+            yAxis='Price (USD)'
+        
+        for i in range(len(self.figure)):
+            self.figure[i].update_layout(
+            plot_bgcolor=colors['background'],
+            paper_bgcolor=colors['background'],
+            font_color=colors['text']
+            )
+            self.figure[i].update_xaxes(title_text=xAxis[i])
+            self.figure[i].update_yaxes(title_text=yAxis)
+        
+        return self.figure
+        
+    def setDash(self):
+        self.figures = self.showFig()
+        global app
+        app = dash.Dash(external_stylesheets=external_stylesheets)
+        
+        #for i in range(len(self.figures)):
+
+        app.layout = html.Div(style={'backgroundColor': colors['background']},children=[
+    
+            html.H1(children='Present Portfolio', style={
+                'textAlign': 'center',
+                'color': colors['text']
+            }),
+
+            #html.Div(children='''
+                #The Signal in the Noise
+            #\n\n\n''', style={
+                #'textAlign': 'center',
+                #'color': colors['text']
+            #}),
+
+            html.Label('Select Stock you want to see', style={
+                'textAlign': 'center',
+                'color': colors['text']
+            }),
+            
+            dcc.RadioItems(
+                id='stocks',
+                options=[{'label': i, 'value': i} for i in tickerNames]
+                ,
+                value='SNAP',
+                style={'color': colors['text'], 'textAlign': 'center'
+                },
+                labelStyle={'display': 'inline-block'}
+            ),
+            dcc.Graph(id='Stock-Price-Graphic'),
+            
+            ])
+        
+        @app.callback(
+            Output('Stock-Price-Graphic', 'figure'),
+            Input('stocks', 'value'))  
+        def update_figure(stocks_value):
+            val = tickerNames.index(stocks_value)
+            
+            fig = self.figures[val]
+            
+            fig.update_layout(transition_duration=500)
+            
+            return fig
+            
+        
+        print('\n\nAre you ready to run Dash? Y or N\n')
+        q = input()
+        q
+        
+        if q == "Yes" or q =="yes" or q=="y" or q=="Y":
+            print('\n\nRunning Dash...\n\n')
+            self.runDash()
+        else:
+            print('\n\nOkay!  The Dash will not run at this time\n\n')
+        
+    def runDash(self):
+        app.run_server(debug=True, use_reloader=False)  # Turn off reloader if inside Jupyter
+
+        
+        
+        
+snap = yf.Ticker('SNAP')
+acb = yf.Ticker('ACB')
+luv = yf.Ticker('LUV')
+mrna = yf.Ticker('MRNA')
+aapl = yf.Ticker('AAPL')
+msft = yf.Ticker('MSFT')
+azn = yf.Ticker('AZN')
+sos = yf.Ticker('SOS')
+acls = yf.Ticker('ACLS')
+adbe = yf.Ticker('ADBE')
+etc = yf.Ticker('ETC-USD')
+
+tickerNames = []
+                                                                                                                       
+tickers = [snap, acb, luv, mrna, aapl, msft, azn, sos, acls, adbe, etc]
+
+for i in tickers:
+    tickerNames.append(i.ticker)
+
+stocks = Set_Interface(tickers)
+
+stocks.setDash()
