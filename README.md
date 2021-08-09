@@ -1,4 +1,4 @@
-# Trading-Dashoard-Project
+# StockPortfolio-Dashoard-Project
 
 -The Idea for this was to create a web Dashboard with my Stock Portfolio
 
